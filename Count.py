@@ -1,15 +1,18 @@
 from sklearn.feature_extraction.text import CountVectorizer
-from os import listdir, mkdir
-from os.path import isfile, join, exists
-from shutil import copyfile
-from ntpath import basename
+from os import listdir
+from os.path import isfile, join
 import re
 import json
 import operator
+import allVariables
 
+#Valeur minimal pour qu un mot rentre dans le dictionnaire global
 PETIT=10
-MOYEN=20
-GRAND=30
+MOYEN=40
+GRAND=70
+
+###################################################################################
+#https://kavita-ganesan.com/how-to-use-countvectorizer/#.YCE9MOhKiUl
 
 def sort_coo(coo_matrix):
     tuples = zip(coo_matrix.col, coo_matrix.data)
@@ -38,11 +41,12 @@ def extract_topn_from_vector(feature_names, sorted_items, topn=10):
 
 documents = []
 globListcat = {}
-LaCateg = ""
-myDirectory = ""
-monRep = ""
+LaCateg = allVariables.pathToCat
+myDirectory = allVariables.pathToFile
 
-MotMax = PETIT
+pattern = re.compile('^([0-9]+)')
+
+MotMax = GRAND
 
 #on créé le tableau global pour stocker tous les mots retenus
 with open(LaCateg, 'r') as json_file:
@@ -53,105 +57,86 @@ with open(LaCateg, 'r') as json_file:
         globListcat[key] = []
     globListcat["Other"] = []
 
+#fonction récursive permettant de parcourir l'ensemble des dossiers
+def fichier_rec(myDirectory):
 
-#print(globListcat)
-pattern = re.compile('^([0-9]+)')
+    for f in listdir(myDirectory):
+        chemin = join(myDirectory, f)
+        if isfile(chemin):
+            with open(chemin, 'rb') as file:
+                content = ''
+                for line in file:
+                    word = str(line).split(" ")
+                    for m in word:
+                        if not( pattern.match(str(m)) ):
+                            content += str(m)+" "
+            documents = [content]
+    
 
-for f in listdir(myDirectory):
-    chemin = join(myDirectory, f)
-    if isfile(chemin):
-        with open(chemin, 'rb') as file:
-            content = ''
-            for line in file:
-                word = str(line).split(" ")
-                for m in word:
-                    #if not re.match("^[0-9]+",str(m)) and not re.match("[0-9]+",str(m)):
-                    if not( pattern.match(str(m)) ):
-                        content += str(m)+" "
-        documents = [content]
-   
+            cv = CountVectorizer(stop_words="english")
+            count_vector=cv.fit_transform(documents)
 
-        cv = CountVectorizer(stop_words="english")
-        count_vector=cv.fit_transform(documents)
+            #sort the counts of first book title by descending order of counts
+            sorted_items=sort_coo(count_vector[0].tocoo())
 
-        #sort the counts of first book title by descending order of counts
-        sorted_items=sort_coo(count_vector[0].tocoo())
+            #Get feature names (words/n-grams). It is sorted by position in sparse matrix
+            feature_names=cv.get_feature_names()
+            n_grams=extract_topn_from_vector(feature_names,sorted_items,20)
 
-        #Get feature names (words/n-grams). It is sorted by position in sparse matrix
-        feature_names=cv.get_feature_names()
-        n_grams=extract_topn_from_vector(feature_names,sorted_items,20)
+            listCat = {}
 
-        """for i in n_grams:
-            print(i)
-            print(i[0], i[1])
-        exit(0)"""
+            #on défini la valeur des différentes catégories pour le document courant
+            with open(LaCateg, 'r') as json_file:
+                dataCateg = json.load(json_file)
 
-        listCat = {}
+                for key in dataCateg.keys():
+                    listCat[key] = 0
 
-        #on défini la valeur des différente catégories pour le document courant
-        with open(LaCateg, 'r') as json_file:
-            if not exists(monRep):
-                mkdir(monRep)
+                for key in dataCateg.keys():
+                    for i in n_grams:
+                        if i[0] in dataCateg[key]:
+                            listCat[key] += i[1]
+                    
 
-            dataCateg = json.load(json_file)
+            #on défini la cétgorie qui a l'a plus grande occurence 
+            #print("listCat: ", listCat)
+            cpt = 0
+            catMax = ""
+            for j in listCat:
+                if cpt < listCat[j]:
+                    cpt = listCat[j]
+                    catMax = j
 
-            for key in dataCateg.keys():
-                if not exists(monRep + "/" + key):
-                    mkdir(monRep + "/" + key)
-                
-                if not exists(monRep + "/Other"):
-                    mkdir(monRep + "/Other")
-                listCat[key] = 0
+            if catMax == "":
+                catMax="Other"
 
-            for key in dataCateg.keys():
+            #on range les mots les plus fréquents du document
+            if catMax != "":
                 for i in n_grams:
-                    if i[0] in dataCateg[key]:
-                        listCat[key] += i[1]
-                
+                    l = True
+                    if len(globListcat[catMax]) > 0 :
+                        j=0
+                        for c in globListcat[catMax]:
+                            if i[0] == c[0]:
 
-        #on défini la cétgorie qui a l'a plus grande occurence 
-        #print("fichier: ", f)
-        print("listCat: ", listCat)
-        cpt = 0
-        catMax = ""
-        for j in listCat:
-            if cpt < listCat[j]:
-                cpt = listCat[j]
-                catMax = j
+                                x = list(c)
+                                x[1]+=i[1] 
+                                t=tuple(x)
 
-        if catMax == "":
-            catMax="Other"
+                                globListcat[catMax][j]=t
 
-        copyfile(chemin, monRep + "/" + catMax + "/" + basename(chemin))
-
-        """print("---------affichage: ", catMax)
-        print()"""
-
-        #on range les mots les plus fréquents du document
-        if catMax != "":
-            for i in n_grams:
-                l = True
-                if len(globListcat[catMax]) > 0 :
-                    j=0
-                    for c in globListcat[catMax]:
-                        if i[0] == c[0]:
-
-                            x = list(c)
-                            x[1]+=i[1] 
-                            t=tuple(x)
-
-                            globListcat[catMax][j]=t
-
-                            l = False
-                        j+=1
-                    if l:
+                                l = False
+                            j+=1
+                        if l:
+                            globListcat[catMax].append(i)
+                    else:
                         globListcat[catMax].append(i)
-                else:
-                    globListcat[catMax].append(i)
 
-        """print(globListcat)
-        print()
-        print()"""
+        else:
+            print(chemin)
+            fichier_rec(chemin)
+
+fichier_rec(myDirectory)
 
 #on trie le tableau gloabl par les occurences
 for k in globListcat.keys():
@@ -162,10 +147,6 @@ for k in globListcat.keys():
         
         globListcat[k] = sorted_tuples
 
-for key in globListcat:
-    print("\n\n")
-    print(globListcat[key])
-    print("\n\n")
 
 #Ajout des nouveaux mot dans le json
 
