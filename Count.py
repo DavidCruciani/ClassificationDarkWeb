@@ -110,6 +110,8 @@ def fichier_rec(myDirectory):
             if catMax == "":
                 catMax="Other"
 
+            limitadd = 9
+
             #on range les mots les plus fréquents du document
             if catMax != "":
                 for i in n_grams:
@@ -128,9 +130,11 @@ def fichier_rec(myDirectory):
                                 l = False
                             j+=1
                         if l:
-                            globListcat[catMax].append(i)
+                            if i[1] > limitadd:
+                                globListcat[catMax].append(i)
                     else:
-                        globListcat[catMax].append(i)
+                        if i[1] > limitadd:
+                            globListcat[catMax].append(i)
 
         else:
             print(chemin)
