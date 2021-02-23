@@ -7,7 +7,7 @@ MotMax = 10
 i = 1
 with open(allVariables.pathToProg + "/sortie.txt", "a") as sortie:
     while MotMax < 60:
-        copyfile(allVariables.pathToProg + "/cat.json", allVariables.pathToProg + "cat - Copie.json")
+        copyfile(allVariables.pathToProg + "/cat.json", allVariables.pathToProg + "/cat - Copie.json")
         
         sortie.write(str(i) + ". " + str(MotMax) + ": ")
 
