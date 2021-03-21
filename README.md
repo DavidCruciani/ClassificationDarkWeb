@@ -73,4 +73,44 @@ Cette fonction permet d'afficher le nombre de fichiers mal classés après l'ex�
 	</ul>
 	</li>
 </ul>
+## Résultat :
+
+Voici un tableau récapitulatif montrant la classification avant et après l'apprentissage:
+
+| 20news_test | cat.json | catAp.json |
+| ----------- | -------- | ---------- |
+| bien classé | 1606     | 2205       |
+| mal classé  | 2237     | 1638       |
+
+
+
+##### En utilisant ExecAuto.py:
+
+Grace à **ExecAuto.py**, on teste différentes valeurs pour le seuil d'ajout dans le fichier de catégorie ce qui nous permet de voir laquelle de ces valeurs est la plus optimale, afin d'avoir le moins de documents mal classés. Ici, c'est un seuil de 50 qui donne les meilleurs résultats.
+
+10-20-30: NB de fichiers mal classés : 1604
+
+40: NB de fichiers mal classés : 1617
+
+50: NB de fichiers mal classés : 1565
+
+60: NB de fichiers mal classés : 1603
+
+70: NB de fichiers mal classés : 1638
+
+80: NB de fichiers mal classés : 1699
+
+90: NB de fichiers mal classés : 1719
+
+100: NB de fichiers mal classés : 1729
+
+110: NB de fichiers mal classés : 1768
+
+120: NB de fichiers mal classés : 1818
+
+130: NB de fichiers mal classés : 1830
+
+140: NB de fichiers mal classés : 1836
+
+150: NB de fichiers mal classés : 1809
 
